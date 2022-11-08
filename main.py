@@ -27,7 +27,10 @@ def grg():
     nonbasic_vars = len(xvars) - len(hxs)
     opt_sols = []
 
-    for iter in range(max_iter):
+    for outer_iter in range(max_iter):
+
+        print '\n\nOuter loop iteration: {0}, optimal solution: {1}'.format(outer_iter + 1, x_init)
+        opt_sols.append(fx.subs(zip(xvars, x_init)))
 
         d_f = np.array([df.subs(zip(xvars, x_init)) for df in dfx])
         d_h = np.array([[dh.subs(zip(xvars, x_init)) for dh in dhx] for dhx in dhxs])
@@ -46,6 +49,29 @@ def grg():
         rhs = np.matmul(dh_ds_inv, np.matmul(dh_dd, dfdd.T)).T
 
         alpha = alpha_0
+
+        while alpha > 0.001:
+
+            f_alpha = x_init.T + alpha * rhs
+            f_alpha_bar = f_alpha[:nonbasic_vars]
+            f_alpha_cap = f_alpha[nonbasic_vars:]
+            flag = False
+
+            for iter in range(max_iter):
+                print 'Iteration: {0}, optimal solution obtained at x = {1}'.format(iter + 1, f_alpha)
+                h = np.array([hx.subs(zip(xvars, f_alpha)) for hx in hxs])
+                if all([h_i ** 2 < eps for h_i in h]):
+                    if fx.subs(zip(xvars, x_init)) <= fx.subs(zip(xvars, f_alpha)):
+                        alpha = alpha * b
+                        break
+                    else:
+                        x_init = f_alpha
+                        flag = True
+                        break
+
+                df_d = np.array([[dh.subs(zip(xvars, f_alpha)) for dh in dhx] for dhx in dhxs])
+                d_h_s = np.linalg.inv(np.array([dhx[nonbasic_vars:] for dhx in d_h_d], dtype=float))
+                d_k = f_alpha_cap - np.matmul(d_h_s, h)
 
 
 
