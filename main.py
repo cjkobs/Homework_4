@@ -8,11 +8,13 @@ from sympy import symbols
 
 def grg():
     x1, x2 = symbols('x1 x2 x3')
+
+    # x1 is s, x2 is d
     xvars = [x1, x2]
 
-    f = x1 ^ 2 + x2 ^ 2 + (x1 + x2) ^ 2
-    h = (x1 ^ 2) / 4 + (x2 ^ 2) / 5 + ((x1 + x2) ^ 2) / 25 - 1
-    alpha = 1.0
+    fx = x1 ** 2 + x2 ** 2 + (x1 + x2) ** 2
+    hxs = (x1 ** 2) / 4 + (x2 ** 2) / 5 + ((x1 + x2) ** 2) / 25 - 1
+    alpha_0 = 1.0
     b = 0.5
     t = 0.3
     max_iter = 100
@@ -20,9 +22,30 @@ def grg():
 
     x_init = np.array([0, 5 / m.sqrt(6)])
 
-    df = np.array([np.diff(f, xvar) for xvar in xvars])
-    dh = np.array([[np.diff(h, xvar) for xvar in xvars] for h in h])
-    nonbasic_vars = len(xvars) - len(h)
+    dfx = np.array([np.diff(fx, xvar) for xvar in xvars])
+    dhxs = np.array([[np.diff(hx, xvar) for xvar in xvars] for hx in hxs])
+    nonbasic_vars = len(xvars) - len(hxs)
     opt_sols = []
 
-    for iter
+    for iter in range(max_iter):
+
+        d_f = np.array([df.subs(zip(xvars, x_init)) for df in dfx])
+        d_h = np.array([[dh.subs(zip(xvars, x_init)) for dh in dhx] for dhx in dhxs])
+        dh_ds = np.array([dhx[nonbasic_vars:] for dhx in d_h])
+        dh_dd = np.array([dhx[:nonbasic_vars] for dhx in d_h])
+        df_ds = d_f[nonbasic_vars:]
+        df_dd = d_f[:nonbasic_vars]
+
+        dh_ds_inv = np.linalg.inv(np.array(dh_ds))
+
+        dfdd = df_dd - np.matmul(np.matmul(df_ds, dh_ds_inv), dh_dd)
+
+        if (dfdd[0]) ** 2 <= eps:
+            break
+        # right hand side of f(alpha) equation
+        rhs = np.matmul(dh_ds_inv, np.matmul(dh_dd, dfdd.T)).T
+
+        alpha = alpha_0
+
+
+
