@@ -2,12 +2,13 @@
 
 import numpy as np
 import math as m
+import matplotlib as plt
 
 from sympy import symbols
 
 
 def grg():
-    x1, x2 = symbols('x1 x2 x3')
+    x1, x2 = symbols('x1 x2')
 
     # x1 is s, x2 is d
     xvars = [x1, x2]
@@ -22,14 +23,15 @@ def grg():
 
     x_init = np.array([0, 5 / m.sqrt(6)])
 
-    dfx = np.array([np.diff(fx, xvar) for xvar in xvars])
-    dhxs = np.array([[np.diff(hx, xvar) for xvar in xvars] for hx in hxs])
+    dfx = np.array([diff(fx, xvar) for xvar in xvars])
+    dhxs = np.array([[diff(hx, xvar) for xvar in xvars] for hx in hxs])
     nonbasic_vars = len(xvars) - len(hxs)
     opt_sols = []
 
     for outer_iter in range(max_iter):
 
-        print '\n\nOuter loop iteration: {0}, optimal solution: {1}'.format(outer_iter + 1, x_init)
+        print
+        '\n\nOuter loop iteration: {0}, optimal solution: {1}'.format(outer_iter + 1, x_init)
         opt_sols.append(fx.subs(zip(xvars, x_init)))
 
         d_f = np.array([df.subs(zip(xvars, x_init)) for df in dfx])
@@ -39,7 +41,7 @@ def grg():
         df_ds = d_f[nonbasic_vars:]
         df_dd = d_f[:nonbasic_vars]
 
-        dh_ds_inv = np.linalg.inv(np.array(dh_ds))
+        dh_ds_inv = np.linalg.inv(np.array(dh_ds), dtype=float)
 
         dfdd = df_dd - np.matmul(np.matmul(df_ds, dh_ds_inv), dh_dd)
 
@@ -58,7 +60,8 @@ def grg():
             flag = False
 
             for iter in range(max_iter):
-                print 'Iteration: {0}, optimal solution obtained at x = {1}'.format(iter + 1, f_alpha)
+                print
+                'Iteration: {0}, optimal solution obtained at x = {1}'.format(iter + 1, f_alpha)
                 h = np.array([hx.subs(zip(xvars, f_alpha)) for hx in hxs])
                 if all([h_i ** 2 < eps for h_i in h]):
                     if fx.subs(zip(xvars, x_init)) <= fx.subs(zip(xvars, f_alpha)):
@@ -70,8 +73,39 @@ def grg():
                         break
 
                 df_d = np.array([[dh.subs(zip(xvars, f_alpha)) for dh in dhx] for dhx in dhxs])
-                d_h_s = np.linalg.inv(np.array([dhx[nonbasic_vars:] for dhx in d_h_d], dtype=float))
+                d_h_s = np.linalg.inv(np.array([dhx[nonbasic_vars:] for dhx in df_d], dtype=float))
                 d_k = f_alpha_cap - np.matmul(d_h_s, h)
 
+                if abs(np.linalg.norm(np.array(f_alpha_cap - d_k, dtype=float), 1)) > eps:
+                    f_alpha_cap = d_k
+                    f_alpha = np.concatenate((f_alpha_bar, f_alpha_cap))
+                else:
+                    f_alpha_cap = d_k
+                    f_alpha = np.concatenate((f_alpha_bar, f_alpha_cap))
+                    h - np.array([hx.subs(zip(xvars, f_alpha)) for hx in hxs])
+                    if all([h_i ** 2 < eps for h_i in h]):
+
+                        if fx.subs(zip(xvars, x_init)) <= fx.subs(zip(xvars, f_alpha)):
+                            alpha = alpha * b
+                            break
+                        else:
+                            x_init = f_alpha
+                            flag = True
+                            break
+                    else:
+                        alpha = alpha * b
+                        break
+            if flag == True:
+                break
+
+        print
+        '\n\nFinal solution obtained is: {0}'.format(x_init)
+        print
+        'Value of the function at this point: {0}\n'.format(fx.subs(zip(xvars, x_init)))
+
+        plt.plot(opt_sols, 'ro')  # Plot the solutions obtained after every iteration
+        plt.show()
 
 
+if __name__ == '__main__':
+    grg()
